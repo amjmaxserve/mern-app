@@ -1,0 +1,47 @@
+ 1) //forgot password with reset link generation...
+
+router.post("/forgot-password", async (req, res) => {
+  console.log("Forgot password API called");
+
+  const { username } = req.body;
+
+  console.log("username: ", username);
+
+  if (!username) {
+    console.log("Error: Missing required fields");
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  try {
+    console.log("Querying database for user with username:", username);
+    const user = await User.findOne({ username });
+
+    console.log("User:", user);
+
+    if (!user) {
+      console.log("Error: User not found");
+      return res.status(404).json({ message: "username not found" });
+    }
+
+    console.log("Generating password reset token");
+    const resetToken = uuidv4();
+
+    console.log("Reset token:", resetToken);
+
+    user.resetToken = resetToken;
+    user.resetTokenExpiry = Date.now() + 3600000; // 1 hour expiry
+    await user.save();
+
+    console.log("Password reset token generated and saved to database");
+
+    // Return password reset link
+    const resetLink = `http://localhost:5000/api/reset-password/${resetToken}`;
+    console.log(resetLink);
+    res
+      .status(200)
+      .json({ message: "Password reset link generated", resetLink });
+  } catch (error) {
+    console.error("Error generating password reset token:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
